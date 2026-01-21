@@ -46,7 +46,7 @@ With **warp.nvim**? Press one key, type the hint, you're there.
   --     default_keymap = "<leader>wf",  -- or false to disable
   --   })
   -- end,
-  -- keys = { ... },  -- Optional: add your own keymap
+  keys = { "<leader>w" }, -- your binding key (trigger lazy loading)
 }
 ```
 
