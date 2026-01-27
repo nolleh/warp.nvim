@@ -31,6 +31,7 @@ With **warp.nvim**? Press one key, type the hint, you're there.
 - **Line number aware** - Detects `file.lua:42` patterns and jumps to the exact line
 - **Wrapped path support** - Handles file paths broken across lines by terminal width
 - **Smart window targeting** - Opens files in your editor window, not the terminal
+- **Split/Vsplit support** - Prefix with `S` or `V` to open in split windows
 
 ## Installation
 
@@ -68,6 +69,16 @@ use {
 3. Type the hint to jump
 
 That's it. No configuration needed.
+
+### Split / Vsplit
+
+Open files in split windows by prefixing the hint with uppercase `S` or `V`:
+
+| Input | Action                        |
+| ----- | ----------------------------- |
+| `a`   | Open in current window (edit) |
+| `Sa`  | Open in horizontal split      |
+| `Va`  | Open in vertical split        |
 
 ### Keymap Configuration
 

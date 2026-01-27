@@ -51,11 +51,14 @@ local function find_target_window()
   return nil
 end
 
+---@alias OpenMode "edit" | "split" | "vsplit"
+
 ---Process the matched ref and open file
 ---@param ref WarpRef
 ---@param bufnr number
 ---@param ns number
-local function process_ref(ref, bufnr, ns)
+---@param mode OpenMode
+local function process_ref(ref, bufnr, ns, mode)
   vim.api.nvim_buf_clear_namespace(bufnr, ns, 0, -1)
   vim.api.nvim_echo({ { "" } }, false, {})
 
@@ -67,13 +70,21 @@ local function process_ref(ref, bufnr, ns)
     return
   end
 
-  if target_win then
+  local open_cmd = mode == "split" and "split" or mode == "vsplit" and "vsplit" or "edit"
+
+  if target_win and mode == "edit" then
     vim.api.nvim_win_call(target_win, function()
-      vim.cmd("edit " .. vim.fn.fnameescape(path))
+      vim.cmd(open_cmd .. " " .. vim.fn.fnameescape(path))
     end)
     vim.api.nvim_set_current_win(target_win)
   else
-    vim.cmd("edit " .. vim.fn.fnameescape(path))
+    if mode ~= "edit" then
+      -- For split/vsplit, go to target window first if available
+      if target_win then
+        vim.api.nvim_set_current_win(target_win)
+      end
+    end
+    vim.cmd(open_cmd .. " " .. vim.fn.fnameescape(path))
   end
 
   vim.api.nvim_win_set_cursor(0, { ref.line, 0 })
@@ -114,10 +125,11 @@ function M.show_hints(refs, bufnr)
   end
 
   vim.cmd("redraw")
-  vim.api.nvim_echo({ { "Press hint key (or Esc to cancel): ", "Question" } }, false, {})
+  vim.api.nvim_echo({ { "Press hint key (S=split, V=vsplit, or Esc to cancel): ", "Question" } }, false, {})
 
   -- Input handling loop
   local input = ""
+  local mode = "edit" ---@type OpenMode
 
   while true do
     local ok, char = pcall(vim.fn.getcharstr)
@@ -127,57 +139,69 @@ function M.show_hints(refs, bufnr)
       return
     end
 
-    input = input .. char
+    -- Check for split/vsplit prefix (only at the start, use uppercase to avoid hint conflicts)
+    local is_mode_prefix = false
+    if input == "" and char == "S" then
+      mode = "split"
+      is_mode_prefix = true
+    elseif input == "" and char == "V" then
+      mode = "vsplit"
+      is_mode_prefix = true
+    end
 
-    if hint_map[input] then
-      -- Exact match found
-      if has_longer_match(input, hint_map) then
-        -- There are longer hints starting with this input, wait for timeout
-        local timeout_ms = vim.o.timeoutlen
-        local next_char = nil
+    if not is_mode_prefix then
+      input = input .. char
 
-        vim.wait(timeout_ms, function()
-          local c = vim.fn.getchar(0)
-          if c ~= 0 then
-            next_char = vim.fn.nr2char(c)
-            return true
-          end
-          return false
-        end, 10)
+      if hint_map[input] then
+        -- Exact match found
+        if has_longer_match(input, hint_map) then
+          -- There are longer hints starting with this input, wait for timeout
+          local timeout_ms = vim.o.timeoutlen
+          local next_char = nil
 
-        if next_char then
-          if next_char == "\27" then -- Esc during timeout
-            vim.api.nvim_buf_clear_namespace(bufnr, ns, 0, -1)
-            vim.api.nvim_echo({ { "" } }, false, {})
+          vim.wait(timeout_ms, function()
+            local c = vim.fn.getchar(0)
+            if c ~= 0 then
+              next_char = vim.fn.nr2char(c)
+              return true
+            end
+            return false
+          end, 10)
+
+          if next_char then
+            if next_char == "\27" then -- Esc during timeout
+              vim.api.nvim_buf_clear_namespace(bufnr, ns, 0, -1)
+              vim.api.nvim_echo({ { "" } }, false, {})
+              return
+            end
+            input = input .. next_char
+            if hint_map[input] then
+              process_ref(hint_map[input], bufnr, ns, mode)
+              return
+            elseif not has_longer_match(input, hint_map) then
+              vim.api.nvim_buf_clear_namespace(bufnr, ns, 0, -1)
+              vim.api.nvim_echo({ { "No match for: " .. input, "ErrorMsg" } }, false, {})
+              return
+            end
+          -- Continue loop if still has potential matches
+          else
+            -- Timeout - use current match
+            process_ref(hint_map[input], bufnr, ns, mode)
             return
           end
-          input = input .. next_char
-          if hint_map[input] then
-            process_ref(hint_map[input], bufnr, ns)
-            return
-          elseif not has_longer_match(input, hint_map) then
-            vim.api.nvim_buf_clear_namespace(bufnr, ns, 0, -1)
-            vim.api.nvim_echo({ { "No match for: " .. input, "ErrorMsg" } }, false, {})
-            return
-          end
-        -- Continue loop if still has potential matches
         else
-          -- Timeout - use current match
-          process_ref(hint_map[input], bufnr, ns)
+          -- No longer hints, process immediately
+          process_ref(hint_map[input], bufnr, ns, mode)
           return
         end
-      else
-        -- No longer hints, process immediately
-        process_ref(hint_map[input], bufnr, ns)
+      elseif not has_longer_match(input, hint_map) then
+        -- No match and no potential longer match
+        vim.api.nvim_buf_clear_namespace(bufnr, ns, 0, -1)
+        vim.api.nvim_echo({ { "No match for: " .. input, "ErrorMsg" } }, false, {})
         return
       end
-    elseif not has_longer_match(input, hint_map) then
-      -- No match and no potential longer match
-      vim.api.nvim_buf_clear_namespace(bufnr, ns, 0, -1)
-      vim.api.nvim_echo({ { "No match for: " .. input, "ErrorMsg" } }, false, {})
-      return
+      -- Has potential longer match, continue waiting for input
     end
-    -- Has potential longer match, continue waiting for input
   end
 end
 
