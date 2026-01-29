@@ -1,12 +1,15 @@
 -- Path detection logic for warp.nvim
 local M = {}
 
+---@alias RefType "file" | "url"
+
 ---@class WarpRef
 ---@field path string
 ---@field line number
 ---@field display string
 ---@field buf_line number
 ---@field col number
+---@field type RefType
 
 ---Find file paths in visible buffer area
 ---@param bufnr number
@@ -49,7 +52,12 @@ function M.find_refs(bufnr, win_id)
   end
 
   -- Helper: check if position is visible on screen and add to refs
-  local function try_add_ref(path, lnum, display, s)
+  ---@param path string
+  ---@param lnum number
+  ---@param display string
+  ---@param s number
+  ---@param ref_type RefType
+  local function try_add_ref(path, lnum, display, s, ref_type)
     local buf_line, col = pos_to_line_col(s)
     col = math.max(0, col)
     local pos = vim.fn.screenpos(win_id, buf_line, col + 1)
@@ -58,21 +66,38 @@ function M.find_refs(bufnr, win_id)
       local key = buf_line .. ":" .. col .. ":" .. display
       if not seen[key] then
         seen[key] = true
-        table.insert(refs, { path = path, line = lnum, display = display, buf_line = buf_line, col = col })
+        table.insert(
+          refs,
+          { path = path, line = lnum, display = display, buf_line = buf_line, col = col, type = ref_type }
+        )
       end
     end
   end
 
+  -- Pattern: URL (http:// or https://)
+  local url_pattern = "(https?://[%w%-_.~:/?#%[%]@!$&'()*+,;=%%]+)"
+  local search_start = 1
+  while true do
+    local s, e, url = combined:find(url_pattern, search_start)
+    if not s then
+      break
+    end
+    -- Remove trailing punctuation that's likely not part of the URL
+    url = url:gsub("[,.)>]+$", "")
+    try_add_ref(url, 0, url, s, "url")
+    search_start = e + 1
+  end
+
   -- Pattern: file:line
   local pattern_with_line = "([~%.%w/_%-][~%w%./_%-]*):(%d+)"
-  local search_start = 1
+  search_start = 1
   while true do
     local s, e, path, lnum = combined:find(pattern_with_line, search_start)
     if not s then
       break
     end
     if not path:match("^%d+$") and #path >= 2 then
-      try_add_ref(path, tonumber(lnum), path .. ":" .. lnum, s)
+      try_add_ref(path, tonumber(lnum), path .. ":" .. lnum, s, "file")
     end
     search_start = e + 1
   end
@@ -88,7 +113,7 @@ function M.find_refs(bufnr, win_id)
     local next_chars = combined:sub(e + 1, e + 2)
     local looks_like_path = path:match("/") or path:match("%.")
     if not next_chars:match("^:%d") and #path >= 2 and looks_like_path then
-      try_add_ref(path, 1, path, s)
+      try_add_ref(path, 1, path, s, "file")
     end
     search_start = e + 1
   end

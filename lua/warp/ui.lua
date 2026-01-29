@@ -53,7 +53,17 @@ end
 
 ---@alias OpenMode "edit" | "split" | "vsplit"
 
----Process the matched ref and open file
+---Open URL in browser using vim.ui.open (Neovim 0.10+)
+---@param url string
+local function open_url(url)
+  if vim.ui.open then
+    vim.ui.open(url)
+  else
+    vim.notify("vim.ui.open not available (requires Neovim 0.10+)", vim.log.levels.ERROR)
+  end
+end
+
+---Process the matched ref and open file or URL
 ---@param ref WarpRef
 ---@param bufnr number
 ---@param ns number
@@ -62,6 +72,13 @@ local function process_ref(ref, bufnr, ns, mode)
   vim.api.nvim_buf_clear_namespace(bufnr, ns, 0, -1)
   vim.api.nvim_echo({ { "" } }, false, {})
 
+  -- Handle URL
+  if ref.type == "url" then
+    open_url(ref.path)
+    return
+  end
+
+  -- Handle file
   local target_win = find_target_window()
   local path = finder.resolve_path(ref.path)
 
@@ -96,7 +113,7 @@ end
 ---@param bufnr number
 function M.show_hints(refs, bufnr)
   if #refs == 0 then
-    vim.notify("No visible file:line patterns found", vim.log.levels.INFO)
+    vim.notify("No visible file paths or URLs found", vim.log.levels.INFO)
     return
   end
 
@@ -104,6 +121,10 @@ function M.show_hints(refs, bufnr)
   vim.api.nvim_set_hl(0, "FileHintBg", { fg = "#1a1b26", bg = "#7aa2f7", bold = true })
   vim.api.nvim_set_hl(0, "FileHintLeft", { fg = "#7aa2f7", bg = "NONE" })
   vim.api.nvim_set_hl(0, "FileHintRight", { fg = "#7aa2f7", bg = "NONE" })
+  -- URL hints have different color (green)
+  vim.api.nvim_set_hl(0, "UrlHintBg", { fg = "#1a1b26", bg = "#9ece6a", bold = true })
+  vim.api.nvim_set_hl(0, "UrlHintLeft", { fg = "#9ece6a", bg = "NONE" })
+  vim.api.nvim_set_hl(0, "UrlHintRight", { fg = "#9ece6a", bg = "NONE" })
 
   local ns = vim.api.nvim_create_namespace("file_hints")
   vim.api.nvim_buf_clear_namespace(bufnr, ns, 0, -1)
@@ -113,11 +134,15 @@ function M.show_hints(refs, bufnr)
   for idx, ref in ipairs(refs) do
     local key = get_hint_key(idx)
     hint_map[key] = ref
+    local is_url = ref.type == "url"
+    local hl_left = is_url and "UrlHintLeft" or "FileHintLeft"
+    local hl_bg = is_url and "UrlHintBg" or "FileHintBg"
+    local hl_right = is_url and "UrlHintRight" or "FileHintRight"
     pcall(vim.api.nvim_buf_set_extmark, bufnr, ns, ref.buf_line - 1, ref.col, {
       virt_text = {
-        { "", "FileHintLeft" },
-        { " " .. key .. " ", "FileHintBg" },
-        { "", "FileHintRight" },
+        { "", hl_left },
+        { " " .. key .. " ", hl_bg },
+        { "", hl_right },
       },
       virt_text_pos = "inline",
       priority = 1000,

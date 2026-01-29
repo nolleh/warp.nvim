@@ -32,6 +32,12 @@ Failed: test/fixtures/sample_paths.txt:25
 ./some/relative/path.lua
 ../parent/file.txt
 
+## URLs (will open in browser)
+https://github.com/nolleh/warp.nvim
+https://neovim.io/doc/user/lua.html
+http://localhost:3000
+https://www.google.com/search?q=neovim
+
 ## Edge cases
 file.lua
 config.json

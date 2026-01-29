@@ -1,8 +1,8 @@
 # warp.nvim
 
-Jump to any file path visible on your screen. Instantly.
+Jump to any file path or URL visible on your screen. Instantly.
 
-![Neovim](https://img.shields.io/badge/Neovim-0.9+-green.svg?style=flat&logo=neovim)
+![Neovim](https://img.shields.io/badge/Neovim-0.10+-green.svg?style=flat&logo=neovim)
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
 
 ## Demo
@@ -29,6 +29,7 @@ With **warp.nvim**? Press one key, type the hint, you're there.
 - **Works everywhere** - Regular buffers, terminal buffers, floating windows
 - **No terminal integration needed** - Unlike kitty hints, works with any terminal emulator
 - **Line number aware** - Detects `file.lua:42` patterns and jumps to the exact line
+- **URL support** - Opens URLs in your default browser (hints shown in green)
 - **Wrapped path support** - Handles file paths broken across lines by terminal width
 - **Smart window targeting** - Opens files in your editor window, not the terminal
 - **Split/Vsplit support** - Prefix with `S` or `V` to open in split windows
