@@ -30,14 +30,16 @@ function M.find_refs(bufnr, win_id)
   local win_width = vim.api.nvim_win_get_width(win_id)
 
   for i, line in ipairs(lines) do
-    line_offsets[i] = #combined
     local prev_len = i > 1 and #lines[i - 1] or 0
     local is_forced_wrap = prev_len >= win_width - 1
 
     if is_forced_wrap and lines[i - 1]:match(path_char .. "$") and line:match("^" .. path_char) then
+      line_offsets[i] = #combined
       combined = combined .. line
     else
-      combined = combined .. " " .. line
+      combined = combined .. " "
+      line_offsets[i] = #combined
+      combined = combined .. line
     end
   end
 
