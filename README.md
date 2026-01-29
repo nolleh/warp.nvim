@@ -1,13 +1,13 @@
 # warp.nvim
 
-Jump to any file path or URL visible on your screen. Instantly.
+A motion plugin for file jumping. Hop to file paths, not words.
 
 ![Neovim](https://img.shields.io/badge/Neovim-0.10+-green.svg?style=flat&logo=neovim)
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
 
 ## Demo
 
-![Demo](./docs/demo/warp-demo-small.gif)
+https://github.com/user-attachments/assets/87b91299-bcf1-49af-95a4-be09752766ba
 
 ## Why warp.nvim?
 
@@ -91,19 +91,6 @@ require("warp").setup({
   -- default_keymap = false,      -- Disable default keymap
 })
 ```
-
-**Note on keymap conflicts**: `<leader>w` won't interfere with `<leader>wk` or other longer sequences. Neovim waits for the full sequence before executing, so existing keymaps remain safe.
-
-## How It Differs from hop/flash.nvim
-
-| Feature                 | hop/flash.nvim | warp.nvim |
-| ----------------------- | -------------- | --------- |
-| Jump within buffer      | Yes            | -         |
-| Jump to files           | -              | Yes       |
-| Terminal buffer support | Limited        | Full      |
-| Line number detection   | -              | Yes       |
-
-**warp.nvim** complements motion plugins - use hop/flash for navigation within a file, use warp for jumping _to_ files.
 
 ## License
 
