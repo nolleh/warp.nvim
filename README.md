@@ -30,9 +30,18 @@ With **warp.nvim**? Press one key, type the hint, you're there.
 - **No terminal integration needed** - Unlike kitty hints, works with any terminal emulator
 - **Line number aware** - Detects `file.lua:42` patterns and jumps to the exact line
 - **URL support** - Opens URLs in your default browser (hints shown in green)
+- **Markdown link support** - Follows `[text](target)` links including anchor links in `.md` files (hints shown in orange)
 - **Wrapped path support** - Handles file paths broken across lines by terminal width
 - **Smart window targeting** - Opens files in your editor window, not the terminal
 - **Split/Vsplit support** - Prefix with `S` or `V` to open in split windows
+
+### Hint Colors
+
+| Type                   | Color  | Example               |
+| ---------------------- | ------ | --------------------- |
+| File path              | Blue   | `src/utils.lua:42`    |
+| URL                    | Green  | `https://example.com` |
+| Markdown link (anchor) | Orange | `[Demo](#demo)`       |
 
 ## Installation
 

@@ -1,7 +1,7 @@
 -- Path detection logic for warp.nvim
 local M = {}
 
----@alias RefType "file" | "url"
+---@alias RefType "file" | "url" | "anchor"
 
 ---@class WarpRef
 ---@field path string
@@ -88,6 +88,31 @@ function M.find_refs(bufnr, win_id)
     url = url:gsub("[,.)>]+$", "")
     try_add_ref(url, 0, url, s, "url")
     search_start = e + 1
+  end
+
+  -- Pattern: Markdown link [text](target) - only for markdown files
+  local ft = vim.bo[bufnr].filetype
+  if ft == "markdown" then
+    local md_link_pattern = "%[([^%]]+)%]%(([^%)]+)%)"
+    search_start = 1
+    while true do
+      local s, e, text, target = combined:find(md_link_pattern, search_start)
+      if not s then
+        break
+      end
+      local display = "[" .. text .. "](" .. target .. ")"
+      if target:match("^#") then
+        -- Anchor link (same document)
+        try_add_ref(target, 0, display, s, "anchor")
+      elseif target:match("^https?://") then
+        -- URL link (already handled above, skip to avoid duplicates)
+        -- do nothing
+      else
+        -- File link
+        try_add_ref(target, 1, display, s, "file")
+      end
+      search_start = e + 1
+    end
   end
 
   -- Pattern: file:line

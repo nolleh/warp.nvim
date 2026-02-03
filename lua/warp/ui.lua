@@ -63,6 +63,32 @@ local function open_url(url)
   end
 end
 
+---Jump to anchor (heading) in current buffer
+---@param anchor string The anchor like "#section-name"
+---@param bufnr number
+local function jump_to_anchor(anchor, bufnr)
+  -- Remove leading # and convert to heading search pattern
+  local heading_slug = anchor:gsub("^#", "")
+  local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+
+  for i, line in ipairs(lines) do
+    -- Match markdown headings (# Heading, ## Heading, etc.)
+    local heading_text = line:match("^#+ (.+)$")
+    if heading_text then
+      -- Convert heading to slug (lowercase, spaces to hyphens, remove special chars)
+      local slug = heading_text:lower():gsub("%s+", "-"):gsub("[^%w%-]", "")
+      if slug == heading_slug then
+        vim.api.nvim_win_set_cursor(0, { i, 0 })
+        vim.cmd("normal! zz")
+        return true
+      end
+    end
+  end
+
+  vim.notify("Anchor not found: " .. anchor, vim.log.levels.INFO)
+  return false
+end
+
 ---Process the matched ref and open file or URL
 ---@param ref WarpRef
 ---@param bufnr number
@@ -75,6 +101,12 @@ local function process_ref(ref, bufnr, ns, mode)
   -- Handle URL
   if ref.type == "url" then
     open_url(ref.path)
+    return
+  end
+
+  -- Handle anchor (same document heading link)
+  if ref.type == "anchor" then
+    jump_to_anchor(ref.path, bufnr)
     return
   end
 
@@ -113,7 +145,7 @@ end
 ---@param bufnr number
 function M.show_hints(refs, bufnr)
   if #refs == 0 then
-    vim.notify("No visible file paths or URLs found", vim.log.levels.INFO)
+    vim.notify("No visible file paths, URLs, or links found", vim.log.levels.INFO)
     return
   end
 
@@ -125,6 +157,10 @@ function M.show_hints(refs, bufnr)
   vim.api.nvim_set_hl(0, "UrlHintBg", { fg = "#1a1b26", bg = "#9ece6a", bold = true })
   vim.api.nvim_set_hl(0, "UrlHintLeft", { fg = "#9ece6a", bg = "NONE" })
   vim.api.nvim_set_hl(0, "UrlHintRight", { fg = "#9ece6a", bg = "NONE" })
+  -- Anchor hints have different color (orange/yellow)
+  vim.api.nvim_set_hl(0, "AnchorHintBg", { fg = "#1a1b26", bg = "#e0af68", bold = true })
+  vim.api.nvim_set_hl(0, "AnchorHintLeft", { fg = "#e0af68", bg = "NONE" })
+  vim.api.nvim_set_hl(0, "AnchorHintRight", { fg = "#e0af68", bg = "NONE" })
 
   local ns = vim.api.nvim_create_namespace("file_hints")
   vim.api.nvim_buf_clear_namespace(bufnr, ns, 0, -1)
@@ -134,10 +170,14 @@ function M.show_hints(refs, bufnr)
   for idx, ref in ipairs(refs) do
     local key = get_hint_key(idx)
     hint_map[key] = ref
-    local is_url = ref.type == "url"
-    local hl_left = is_url and "UrlHintLeft" or "FileHintLeft"
-    local hl_bg = is_url and "UrlHintBg" or "FileHintBg"
-    local hl_right = is_url and "UrlHintRight" or "FileHintRight"
+    local hl_left, hl_bg, hl_right
+    if ref.type == "url" then
+      hl_left, hl_bg, hl_right = "UrlHintLeft", "UrlHintBg", "UrlHintRight"
+    elseif ref.type == "anchor" then
+      hl_left, hl_bg, hl_right = "AnchorHintLeft", "AnchorHintBg", "AnchorHintRight"
+    else
+      hl_left, hl_bg, hl_right = "FileHintLeft", "FileHintBg", "FileHintRight"
+    end
     pcall(vim.api.nvim_buf_set_extmark, bufnr, ns, ref.buf_line - 1, ref.col, {
       virt_text = {
         { "", hl_left },
