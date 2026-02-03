@@ -22,6 +22,18 @@ function M.find_refs(bufnr, win_id)
 
   local refs = {}
   local seen = {}
+  local matched_ranges = {} -- Track matched ranges to avoid overlapping matches
+
+  -- Helper: check if a range overlaps with any existing matched range
+  local function is_range_matched(s, e)
+    for _, range in ipairs(matched_ranges) do
+      -- Check for overlap: not (e < range.s or s > range.e)
+      if not (e < range.s or s > range.e) then
+        return true
+      end
+    end
+    return false
+  end
 
   -- Combine lines for detecting wrapped paths (lines broken by terminal width)
   local combined = ""
@@ -57,9 +69,15 @@ function M.find_refs(bufnr, win_id)
   ---@param path string
   ---@param lnum number
   ---@param display string
-  ---@param s number
+  ---@param s number start position in combined string
+  ---@param e number end position in combined string
   ---@param ref_type RefType
-  local function try_add_ref(path, lnum, display, s, ref_type)
+  local function try_add_ref(path, lnum, display, s, e, ref_type)
+    -- Skip if this range overlaps with an already matched range
+    if is_range_matched(s, e) then
+      return
+    end
+
     local buf_line, col = pos_to_line_col(s)
     col = math.max(0, col)
     local pos = vim.fn.screenpos(win_id, buf_line, col + 1)
@@ -68,6 +86,7 @@ function M.find_refs(bufnr, win_id)
       local key = buf_line .. ":" .. col .. ":" .. display
       if not seen[key] then
         seen[key] = true
+        table.insert(matched_ranges, { s = s, e = e })
         table.insert(
           refs,
           { path = path, line = lnum, display = display, buf_line = buf_line, col = col, type = ref_type }
@@ -85,8 +104,9 @@ function M.find_refs(bufnr, win_id)
       break
     end
     -- Remove trailing punctuation that's likely not part of the URL
-    url = url:gsub("[,.)>]+$", "")
-    try_add_ref(url, 0, url, s, "url")
+    local clean_url = url:gsub("[,.)>]+$", "")
+    local clean_e = s + #clean_url - 1
+    try_add_ref(clean_url, 0, clean_url, s, clean_e, "url")
     search_start = e + 1
   end
 
@@ -103,13 +123,13 @@ function M.find_refs(bufnr, win_id)
       local display = "[" .. text .. "](" .. target .. ")"
       if target:match("^#") then
         -- Anchor link (same document)
-        try_add_ref(target, 0, display, s, "anchor")
+        try_add_ref(target, 0, display, s, e, "anchor")
       elseif target:match("^https?://") then
         -- URL link (already handled above, skip to avoid duplicates)
         -- do nothing
       else
         -- File link
-        try_add_ref(target, 1, display, s, "file")
+        try_add_ref(target, 1, display, s, e, "file")
       end
       search_start = e + 1
     end
@@ -124,7 +144,7 @@ function M.find_refs(bufnr, win_id)
       break
     end
     if not path:match("^%d+$") and #path >= 2 then
-      try_add_ref(path, tonumber(lnum), path .. ":" .. lnum, s, "file")
+      try_add_ref(path, tonumber(lnum), path .. ":" .. lnum, s, e, "file")
     end
     search_start = e + 1
   end
@@ -140,7 +160,7 @@ function M.find_refs(bufnr, win_id)
     local next_chars = combined:sub(e + 1, e + 2)
     local looks_like_path = path:match("/") or path:match("%.")
     if not next_chars:match("^:%d") and #path >= 2 and looks_like_path then
-      try_add_ref(path, 1, path, s, "file")
+      try_add_ref(path, 1, path, s, e, "file")
     end
     search_start = e + 1
   end
