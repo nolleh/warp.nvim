@@ -95,26 +95,12 @@ function M.find_refs(bufnr, win_id)
     end
   end
 
-  -- Pattern: URL (http:// or https://)
-  local url_pattern = "(https?://[%w%-_.~:/?#%[%]@!$&'()*+,;=%%]+)"
-  local search_start = 1
-  while true do
-    local s, e, url = combined:find(url_pattern, search_start)
-    if not s then
-      break
-    end
-    -- Remove trailing punctuation that's likely not part of the URL
-    local clean_url = url:gsub("[,.)>]+$", "")
-    local clean_e = s + #clean_url - 1
-    try_add_ref(clean_url, 0, clean_url, s, clean_e, "url")
-    search_start = e + 1
-  end
-
   -- Pattern: Markdown link [text](target) - only for markdown files
+  -- Run this BEFORE URL pattern so markdown links get proper hint position at [
   local ft = vim.bo[bufnr].filetype
+  local search_start = 1
   if ft == "markdown" then
     local md_link_pattern = "%[([^%]]+)%]%(([^%)]+)%)"
-    search_start = 1
     while true do
       local s, e, text, target = combined:find(md_link_pattern, search_start)
       if not s then
@@ -125,14 +111,29 @@ function M.find_refs(bufnr, win_id)
         -- Anchor link (same document)
         try_add_ref(target, 0, display, s, e, "anchor")
       elseif target:match("^https?://") then
-        -- URL link (already handled above, skip to avoid duplicates)
-        -- do nothing
+        -- URL link in markdown format
+        try_add_ref(target, 0, display, s, e, "url")
       else
         -- File link
         try_add_ref(target, 1, display, s, e, "file")
       end
       search_start = e + 1
     end
+  end
+
+  -- Pattern: URL (http:// or https://) - raw URLs not in markdown link format
+  local url_pattern = "(https?://[%w%-_.~:/?#%[%]@!$&'()*+,;=%%]+)"
+  search_start = 1
+  while true do
+    local s, e, url = combined:find(url_pattern, search_start)
+    if not s then
+      break
+    end
+    -- Remove trailing punctuation that's likely not part of the URL
+    local clean_url = url:gsub("[,.)>]+$", "")
+    local clean_e = s + #clean_url - 1
+    try_add_ref(clean_url, 0, clean_url, s, clean_e, "url")
+    search_start = e + 1
   end
 
   -- Pattern: file:line
