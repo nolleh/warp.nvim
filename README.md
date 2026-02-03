@@ -9,6 +9,8 @@ A motion plugin for file jumping. Hop to file paths, not words.
 
 https://github.com/user-attachments/assets/87b91299-bcf1-49af-95a4-be09752766ba
 
+https://github.com/user-attachments/assets/1d9a2055-e67f-4663-9e1d-d21d09817dca
+
 ## Why warp.nvim?
 
 You're in a terminal buffer. A test fails. The error shows `src/utils/parser.lua:42`.
