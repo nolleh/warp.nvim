@@ -1,6 +1,6 @@
 # warp.nvim
 
-![](./docs/images/Warp.png)
+![](./docs/images/warp.png)
 
 A motion plugin for file jumping. Hop to file paths, not words.
 
