@@ -6,6 +6,7 @@ local M = {}
 ---@class WarpRef
 ---@field path string
 ---@field line number
+---@field column number|nil Column number (1-indexed, nil if not specified)
 ---@field display string
 ---@field buf_line number
 ---@field col number
@@ -72,7 +73,8 @@ function M.find_refs(bufnr, win_id)
   ---@param s number start position in combined string
   ---@param e number end position in combined string
   ---@param ref_type RefType
-  local function try_add_ref(path, lnum, display, s, e, ref_type)
+  ---@param column number|nil optional column number
+  local function try_add_ref(path, lnum, display, s, e, ref_type, column)
     -- Skip if this range overlaps with an already matched range
     if is_range_matched(s, e) then
       return
@@ -87,10 +89,15 @@ function M.find_refs(bufnr, win_id)
       if not seen[key] then
         seen[key] = true
         table.insert(matched_ranges, { s = s, e = e })
-        table.insert(
-          refs,
-          { path = path, line = lnum, display = display, buf_line = buf_line, col = col, type = ref_type }
-        )
+        table.insert(refs, {
+          path = path,
+          line = lnum,
+          column = column,
+          display = display,
+          buf_line = buf_line,
+          col = col,
+          type = ref_type,
+        })
       end
     end
   end
@@ -133,6 +140,20 @@ function M.find_refs(bufnr, win_id)
     local clean_url = url:gsub("[,.)>]+$", "")
     local clean_e = s + #clean_url - 1
     try_add_ref(clean_url, 0, clean_url, s, clean_e, "url")
+    search_start = e + 1
+  end
+
+  -- Pattern: file:line:col (must be before file:line to match first)
+  local pattern_with_line_col = "([~%.%w/_%-][~%w%./_%-]*):(%d+):(%d+)"
+  search_start = 1
+  while true do
+    local s, e, path, lnum, cnum = combined:find(pattern_with_line_col, search_start)
+    if not s then
+      break
+    end
+    if not path:match("^%d+$") and #path >= 2 then
+      try_add_ref(path, tonumber(lnum), path .. ":" .. lnum .. ":" .. cnum, s, e, "file", tonumber(cnum))
+    end
     search_start = e + 1
   end
 

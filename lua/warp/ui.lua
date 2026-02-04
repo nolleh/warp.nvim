@@ -136,7 +136,9 @@ local function process_ref(ref, bufnr, ns, mode)
     vim.cmd(open_cmd .. " " .. vim.fn.fnameescape(path))
   end
 
-  vim.api.nvim_win_set_cursor(0, { ref.line, 0 })
+  -- Set cursor to line and column (column is 0-indexed in nvim_win_set_cursor)
+  local target_col = ref.column and (ref.column - 1) or 0
+  vim.api.nvim_win_set_cursor(0, { ref.line, target_col })
   vim.cmd("normal! zz")
 end
 

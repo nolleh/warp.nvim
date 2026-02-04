@@ -15,15 +15,15 @@ https://github.com/user-attachments/assets/1d9a2055-e67f-4663-9e1d-d21d09817dca
 
 ## Why warp.nvim?
 
-You're in a terminal buffer. A test fails. The error shows `src/utils/parser.lua:42`.
+You're in a terminal buffer. A test fails. The error shows `src/utils/parser.lua:42:15`.
 
-With other plugins? Copy the path, switch windows, open file, go to line.
+With other plugins? Copy the path, switch windows, open file, go to line, find column.
 
 With **warp.nvim**? Press one key, type the hint, you're there.
 
 ```
   Error: assertion failed
-  --> src/utils/parser.lua:42       [a] <- hint appears here
+  --> src/utils/parser.lua:42:15    [a] <- hint appears here
       expected: true
       got: false
 ```
@@ -32,7 +32,7 @@ With **warp.nvim**? Press one key, type the hint, you're there.
 
 - **Works everywhere** - Regular buffers, terminal buffers, floating windows
 - **No terminal integration needed** - Unlike kitty hints, works with any terminal emulator
-- **Line number aware** - Detects `file.lua:42` patterns and jumps to the exact line
+- **Line & column aware** - Detects `file.lua:42` and `file.lua:42:15` patterns, jumps to exact position
 - **URL support** - Opens URLs in your default browser (hints shown in green)
 - **Markdown link support** - Follows `[text](target)` links including anchor links in `.md` files (hints shown in orange)
 - **Wrapped path support** - Handles file paths broken across lines by terminal width
@@ -43,7 +43,7 @@ With **warp.nvim**? Press one key, type the hint, you're there.
 
 | Type                   | Color  | Example               |
 | ---------------------- | ------ | --------------------- |
-| File path              | Blue   | `src/utils.lua:42`    |
+| File path              | Blue   | `src/utils.lua:42:15` |
 | URL                    | Green  | `https://example.com` |
 | Markdown link (anchor) | Orange | `[Demo](#demo)`       |
 

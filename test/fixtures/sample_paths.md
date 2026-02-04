@@ -23,11 +23,28 @@ lua/warp/commands.lua:8
 lua/warp/finder.lua:15
 lua/warp/ui.lua:42
 
+## With line and column numbers
+
+lua/warp/finder.lua:42:10
+lua/warp/ui.lua:139:3
+lua/warp/commands.lua:8:1
+
 ## Typical error output patterns
 
 Error in lua/warp/init.lua:3
 --> lua/warp/commands.lua:12
 Failed: test/fixtures/sample_paths.md:25
+
+## Typical error output with column (Rust, TypeScript, Go style)
+
+error[E0425]: cannot find value `x`
+--> lua/warp/finder.lua:42:15
+|
+42 | let y = x + 1;
+| ^ not found
+
+src/main.ts:10:5 - error TS2304: Cannot find name 'foo'.
+lua/warp/ui.lua:100:20: warning: unused variable
 
 ## System paths (if they exist on your system)
 
@@ -62,6 +79,10 @@ https://www.google.com/search?q=neovim
 
 [GitHub Repo](https://github.com/nolleh/warp.nvim)
 [Neovim Docs](https://neovim.io/doc/user/lua.html)
+
+## Multi-line paths
+
+[Word-wrapped path](/Users/nolleh/Documents/workspace_github/../../../../Users/nolleh/Documents/workspace_github/warp.nvim/lua/warp/init.lua)
 
 ## Edge cases
 
