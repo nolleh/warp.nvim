@@ -1,5 +1,7 @@
 # warp.nvim
 
+![](./docs/images/Warp.png)
+
 A motion plugin for file jumping. Hop to file paths, not words.
 
 ![Neovim](https://img.shields.io/badge/Neovim-0.10+-green.svg?style=flat&logo=neovim)
