@@ -84,6 +84,23 @@ use {
 
 That's it. No configuration needed.
 
+### Works on any path — not just your project
+
+warp.nvim works on **every** file-like or link-like path visible in the buffer. That includes:
+
+- Paths **outside** the current workspace (e.g. `~/jira-task/`, `/tmp/`, another repo)
+- Paths and URLs printed by **CLI tools** (e.g. test output, build logs, or AI coding assistants)
+
+So you can jump to external files and links without leaving the editor or copying paths.
+
+**Examples:**
+
+- **Jira / task notes outside the repo**  
+  You use a skill like `/jira-task` so Claude Code (or similar) writes notes under `~/jira-task/`. When the assistant prints paths like `~/jira-task/PROJ-123.md`, you stay in your repo workspace but can jump to that file with warp — no need to `cd` or open another window.
+
+- **PR / branch URLs after creating a PR**  
+  After asking the assistant to open a PR, it may print the PR URL (e.g. `https://github.com/owner/repo/pull/42`). With warp you can jump to that URL (opens in browser) or to any file path it shows — all from the same buffer.
+
 ### Split / Vsplit
 
 Open files in split windows by prefixing the hint with uppercase `S` or `V`:
