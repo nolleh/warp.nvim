@@ -11,6 +11,8 @@ A motion plugin for file jumping. Hop to file paths, not words.
 
 https://github.com/user-attachments/assets/87b91299-bcf1-49af-95a4-be09752766ba
 
+The small delay while making mark, is just my typing was delayed to think which action will be attractive to users.
+
 https://github.com/user-attachments/assets/1d9a2055-e67f-4663-9e1d-d21d09817dca
 
 ## Why warp.nvim?
