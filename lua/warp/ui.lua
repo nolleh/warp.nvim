@@ -112,7 +112,7 @@ local function process_ref(ref, bufnr, ns, mode)
 
   -- Handle file
   local target_win = find_target_window()
-  local path = finder.resolve_path(ref.path)
+  local path = finder.resolve_path(ref.path, bufnr)
 
   if vim.fn.filereadable(path) == 0 then
     vim.notify("File not found: " .. path, vim.log.levels.INFO)

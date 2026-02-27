@@ -191,13 +191,31 @@ function M.find_refs(bufnr, win_id)
 end
 
 ---Resolve path to absolute path
+---Falls back to buffer-relative resolution if cwd-relative path doesn't exist
 ---@param path string
+---@param bufnr number|nil optional buffer number for buffer-relative fallback
 ---@return string
-function M.resolve_path(path)
+function M.resolve_path(path, bufnr)
   if path:match("^~") then
     return path:gsub("^~", vim.fn.expand("~"))
   elseif not path:match("^/") then
-    return vim.fn.getcwd() .. "/" .. path
+    local cwd_path = vim.fn.getcwd() .. "/" .. path
+    if vim.fn.filereadable(cwd_path) == 1 then
+      return cwd_path
+    end
+
+    if bufnr then
+      local buf_name = vim.api.nvim_buf_get_name(bufnr)
+      if buf_name ~= "" then
+        local buf_dir = vim.fn.fnamemodify(buf_name, ":p:h")
+        local buf_relative_path = buf_dir .. "/" .. path
+        if vim.fn.filereadable(buf_relative_path) == 1 then
+          return buf_relative_path
+        end
+      end
+    end
+
+    return cwd_path
   end
   return path
 end
