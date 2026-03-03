@@ -192,16 +192,32 @@ end
 
 ---Resolve path to absolute path
 ---Falls back to buffer-relative resolution if cwd-relative path doesn't exist
+---@alias PathType "file" | "directory" | "notfound"
+
+---Classify a path as file, directory, or notfound
+---@param p string
+---@return PathType
+local function classify_path(p)
+  if vim.fn.filereadable(p) == 1 then
+    return "file"
+  elseif vim.fn.isdirectory(p) == 1 then
+    return "directory"
+  end
+  return "notfound"
+end
+
 ---@param path string
 ---@param bufnr number|nil optional buffer number for buffer-relative fallback
----@return string
+---@return string resolved_path, PathType path_type
 function M.resolve_path(path, bufnr)
   if path:match("^~") then
-    return path:gsub("^~", vim.fn.expand("~"))
+    local expanded = path:gsub("^~", vim.fn.expand("~"))
+    return expanded, classify_path(expanded)
   elseif not path:match("^/") then
     local cwd_path = vim.fn.getcwd() .. "/" .. path
-    if vim.fn.filereadable(cwd_path) == 1 then
-      return cwd_path
+    local cwd_type = classify_path(cwd_path)
+    if cwd_type ~= "notfound" then
+      return cwd_path, cwd_type
     end
 
     if bufnr then
@@ -209,15 +225,16 @@ function M.resolve_path(path, bufnr)
       if buf_name ~= "" then
         local buf_dir = vim.fn.fnamemodify(buf_name, ":p:h")
         local buf_relative_path = buf_dir .. "/" .. path
-        if vim.fn.filereadable(buf_relative_path) == 1 then
-          return buf_relative_path
+        local buf_type = classify_path(buf_relative_path)
+        if buf_type ~= "notfound" then
+          return buf_relative_path, buf_type
         end
       end
     end
 
-    return cwd_path
+    return cwd_path, "notfound"
   end
-  return path
+  return path, classify_path(path)
 end
 
 return M

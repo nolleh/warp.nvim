@@ -84,6 +84,20 @@ https://www.google.com/search?q=neovim
 
 [Word-wrapped path](/Users/nolleh/Documents/workspace_github/../../../../Users/nolleh/Documents/workspace_github/warp.nvim/lua/warp/init.lua)
 
+## Folder paths (directory browsing)
+
+lua/warp/
+test/fixtures/
+docs/
+~/.config/nvim/
+/tmp/
+./lua/
+
+## Folder paths (markdown links)
+
+[Warp source](lua/warp/)
+[Test fixtures](test/fixtures/)
+
 ## Edge cases
 
 file.lua

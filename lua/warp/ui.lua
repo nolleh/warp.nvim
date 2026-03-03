@@ -89,6 +89,180 @@ local function jump_to_anchor(anchor, bufnr)
   return false
 end
 
+---Render directory contents into a buffer
+---@param buf number
+---@param dir string
+---@return table[] entries List of {name, path, is_dir}
+local function render_directory(buf, dir)
+  local raw = vim.fn.readdir(dir)
+  local dirs = {}
+  local files = {}
+  for _, name in ipairs(raw) do
+    if vim.fn.isdirectory(dir .. "/" .. name) == 1 then
+      table.insert(dirs, name)
+    else
+      table.insert(files, name)
+    end
+  end
+  table.sort(dirs)
+  table.sort(files)
+
+  local entries = {}
+  local lines = {}
+
+  table.insert(entries, { name = "../", path = vim.fn.fnamemodify(dir, ":h"), is_dir = true })
+  table.insert(lines, "../")
+
+  for _, name in ipairs(dirs) do
+    table.insert(entries, { name = name .. "/", path = dir .. "/" .. name, is_dir = true })
+    table.insert(lines, name .. "/")
+  end
+  for _, name in ipairs(files) do
+    table.insert(entries, { name = name, path = dir .. "/" .. name, is_dir = false })
+    table.insert(lines, name)
+  end
+
+  vim.bo[buf].modifiable = true
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+  vim.bo[buf].modifiable = false
+
+  return entries
+end
+
+---Open a floating directory browser anchored one line below the extmark
+---@param ref WarpRef
+---@param dir_path string
+---@param mode OpenMode
+local function open_directory_browser(ref, dir_path, mode)
+  local source_win = vim.api.nvim_get_current_win()
+
+  local buf = vim.api.nvim_create_buf(false, true)
+  vim.bo[buf].buftype = "nofile"
+  vim.bo[buf].swapfile = false
+  vim.bo[buf].filetype = "warp-browser"
+
+  local entries = render_directory(buf, dir_path)
+
+  local dir_ns = vim.api.nvim_create_namespace("warp_browser")
+  local function highlight_entries()
+    vim.api.nvim_buf_clear_namespace(buf, dir_ns, 0, -1)
+    for i, entry in ipairs(entries) do
+      if entry.is_dir then
+        vim.api.nvim_buf_add_highlight(buf, dir_ns, "Directory", i - 1, 0, -1)
+      end
+    end
+  end
+  highlight_entries()
+
+  local function calc_dimensions(entry_list)
+    local max_len = 20
+    for _, entry in ipairs(entry_list) do
+      max_len = math.max(max_len, #entry.name)
+    end
+    return math.min(max_len + 2, 60), math.min(#entry_list, 15)
+  end
+
+  local function make_title(dir, w)
+    local t = " " .. vim.fn.fnamemodify(dir, ":~") .. " "
+    if #t > w then
+      t = " " .. vim.fn.fnamemodify(dir, ":t") .. "/ "
+    end
+    return t
+  end
+
+  local width, height = calc_dimensions(entries)
+  local topline = vim.fn.line("w0")
+  local row = ref.buf_line - topline + 1
+
+  local float_win = vim.api.nvim_open_win(buf, true, {
+    relative = "win",
+    win = source_win,
+    row = row,
+    col = ref.col,
+    width = width,
+    height = height,
+    style = "minimal",
+    border = "rounded",
+    title = make_title(dir_path, width),
+    title_pos = "center",
+  })
+  vim.wo[float_win].cursorline = true
+
+  local function close()
+    if vim.api.nvim_win_is_valid(float_win) then
+      vim.api.nvim_win_close(float_win, true)
+    end
+  end
+
+  local function navigate(dir)
+    entries = render_directory(buf, dir)
+    highlight_entries()
+
+    local new_w, new_h = calc_dimensions(entries)
+    vim.api.nvim_win_set_config(float_win, {
+      relative = "win",
+      win = source_win,
+      row = row,
+      col = ref.col,
+      width = new_w,
+      height = new_h,
+      style = "minimal",
+      border = "rounded",
+      title = make_title(dir, new_w),
+      title_pos = "center",
+    })
+    vim.api.nvim_win_set_cursor(float_win, { 1, 0 })
+  end
+
+  local function open_selected()
+    local cursor = vim.api.nvim_win_get_cursor(float_win)
+    local entry = entries[cursor[1]]
+    if not entry then
+      return
+    end
+
+    if entry.is_dir then
+      navigate(entry.path)
+      return
+    end
+
+    close()
+
+    local target_win = find_target_window()
+    local open_cmd = mode == "split" and "split" or mode == "vsplit" and "vsplit" or "edit"
+    local escaped = vim.fn.fnameescape(entry.path)
+
+    if target_win and mode == "edit" then
+      vim.api.nvim_win_call(target_win, function()
+        vim.cmd(open_cmd .. " " .. escaped)
+      end)
+      vim.api.nvim_set_current_win(target_win)
+    else
+      if mode ~= "edit" and target_win then
+        vim.api.nvim_set_current_win(target_win)
+      end
+      vim.cmd(open_cmd .. " " .. escaped)
+    end
+  end
+
+  local kopts = { buffer = buf, noremap = true, silent = true }
+  vim.keymap.set("n", "<CR>", open_selected, kopts)
+  vim.keymap.set("n", "<Esc>", close, kopts)
+  vim.keymap.set("n", "q", close, kopts)
+  vim.keymap.set("n", "<C-n>", "j", kopts)
+  vim.keymap.set("n", "<C-p>", "k", kopts)
+
+  vim.api.nvim_create_autocmd("WinClosed", {
+    pattern = tostring(float_win),
+    once = true,
+    callback = function()
+      if vim.api.nvim_buf_is_valid(buf) then
+        vim.api.nvim_buf_delete(buf, { force = true })
+      end
+    end,
+  })
+end
+
 ---Process the matched ref and open file or URL
 ---@param ref WarpRef
 ---@param bufnr number
@@ -110,11 +284,16 @@ local function process_ref(ref, bufnr, ns, mode)
     return
   end
 
-  -- Handle file
+  -- Handle file or directory
   local target_win = find_target_window()
-  local path = finder.resolve_path(ref.path, bufnr)
+  local path, path_type = finder.resolve_path(ref.path, bufnr)
 
-  if vim.fn.filereadable(path) == 0 then
+  if path_type == "directory" then
+    open_directory_browser(ref, path, mode)
+    return
+  end
+
+  if path_type == "notfound" then
     vim.notify("File not found: " .. path, vim.log.levels.INFO)
     return
   end

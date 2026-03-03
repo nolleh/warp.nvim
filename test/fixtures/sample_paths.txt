@@ -60,6 +60,14 @@ https://www.google.com/search?q=neovim
 
 Error at lua/warp/finder.lua:42
 
+## Folder paths (directory browsing)
+lua/warp/
+test/fixtures/
+docs/
+~/.config/nvim/
+/tmp/
+./lua/
+
 ## Edge cases
 file.lua
 config.json
