@@ -15,6 +15,10 @@ The small delay while making mark, is just my typing was delayed to think which 
 
 https://github.com/user-attachments/assets/1d9a2055-e67f-4663-9e1d-d21d09817dca
 
+### Directory Browsing
+
+![](./docs/images/folder-browsing.png)
+
 ## Why warp.nvim?
 
 You're in a terminal buffer. A test fails. The error shows `src/utils/parser.lua:42:15`.
@@ -54,6 +58,7 @@ So you can jump to external files and links without leaving the editor or copyin
 - **Line & column aware** - Detects `file.lua:42` and `file.lua:42:15` patterns, jumps to exact position
 - **URL support** - Opens URLs in your default browser (hints shown in green)
 - **Markdown link support** - Follows `[text](target)` links including anchor links in `.md` files (hints shown in orange)
+- **Directory browsing** - When a path points to a folder, opens a floating directory browser you can navigate with standard keys
 - **Wrapped path support** - Handles file paths broken across lines by terminal width
 - **Smart window targeting** - Opens files in your editor window, not the terminal
 - **Split/Vsplit support** - Prefix with `S` or `V` to open in split windows
@@ -102,6 +107,19 @@ use {
 3. Type the hint to jump
 
 That's it. No configuration needed.
+
+### Directory Browsing
+
+When a detected path points to a directory, warp opens a floating browser at the hint position.
+
+| Key           | Action                      |
+| ------------- | --------------------------- |
+| `j` / `<C-n>` | Move down                   |
+| `k` / `<C-p>` | Move up                     |
+| `<CR>`        | Open file / enter directory |
+| `q` / `<Esc>` | Close                       |
+
+Selecting a subdirectory navigates into it in-place. Selecting `../` goes to the parent. The open mode (`S`=split, `V`=vsplit) carries over to the file you pick.
 
 ### Split / Vsplit
 
