@@ -5,13 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v0.5.1](https://github.com/nolleh/warp.nvim/releases/tag/v0.5.1) - 2026-03-03
+
+### Fixed
+
+- Directory browser: `../` correctly navigates to the parent directory when the path has a trailing slash.
+
 ## [v0.5.0](https://github.com/nolleh/warp.nvim/releases/tag/v0.5.0) - 2026-03-03
 
 ### Added
 
 - Directory browsing: when a path resolves to a folder, a floating directory browser opens at the hint position.
   - Navigate with `j`/`k`, `<C-n>`/`<C-p>`, open with `<CR>`, close with `q`/`<Esc>`.
+  - In-place navigation into subdirectories and parent (`../`).
   - Honors the original open mode (edit / split / vsplit).
+- `resolve_path` now returns a `PathType` (`"file"` | `"directory"` | `"notfound"`) as a second return value, eliminating redundant filesystem checks in callers.
 
 ## [v0.4.0](https://github.com/nolleh/warp.nvim/releases/tag/v0.4.0) - 2026-02-27
 
