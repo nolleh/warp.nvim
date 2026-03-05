@@ -94,6 +94,7 @@ end
 ---@param dir string
 ---@return table[] entries List of {name, path, is_dir}
 local function render_directory(buf, dir)
+  dir = dir:gsub("/+$", "")
   local raw = vim.fn.readdir(dir)
   local dirs = {}
   local files = {}
