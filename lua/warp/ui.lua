@@ -2,6 +2,8 @@
 local M = {}
 
 local finder = require("warp.finder")
+local open_directory_browser
+local jump_to_anchor
 
 ---Generate hint key from index
 ---@param idx number
@@ -63,10 +65,58 @@ local function open_url(url)
   end
 end
 
+---Open a ref as a file, directory, URL, or anchor.
+---@param ref WarpRef
+---@param bufnr number
+---@param mode OpenMode
+local function open_ref(ref, bufnr, mode)
+  if ref.type == "url" then
+    open_url(ref.path)
+    return
+  end
+
+  if ref.type == "anchor" then
+    jump_to_anchor(ref.path, bufnr)
+    return
+  end
+
+  local target_win = find_target_window()
+  local path, path_type = finder.resolve_path(ref.path, bufnr)
+
+  if path_type == "directory" then
+    open_directory_browser(ref, path, mode)
+    return
+  end
+
+  if path_type == "notfound" then
+    vim.notify("File not found: " .. path, vim.log.levels.INFO)
+    return
+  end
+
+  local open_cmd = mode == "split" and "split" or mode == "vsplit" and "vsplit" or "edit"
+
+  if target_win and mode == "edit" then
+    vim.api.nvim_win_call(target_win, function()
+      vim.cmd(open_cmd .. " " .. vim.fn.fnameescape(path))
+    end)
+    vim.api.nvim_set_current_win(target_win)
+  else
+    if mode ~= "edit" and target_win then
+      vim.api.nvim_set_current_win(target_win)
+    end
+    vim.cmd(open_cmd .. " " .. vim.fn.fnameescape(path))
+  end
+
+  local target_line = ref.line or 1
+  local target_col = ref.column and (ref.column - 1) or 0
+  vim.api.nvim_win_set_cursor(0, { target_line, target_col })
+  vim.cmd("normal! zz")
+end
+
 ---Jump to anchor (heading) in current buffer
 ---@param anchor string The anchor like "#section-name"
 ---@param bufnr number
-local function jump_to_anchor(anchor, bufnr)
+jump_to_anchor = function(anchor, bufnr)
   -- Remove leading # and convert to heading search pattern
   local heading_slug = anchor:gsub("^#", "")
   local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
@@ -134,7 +184,7 @@ end
 ---@param ref WarpRef
 ---@param dir_path string
 ---@param mode OpenMode
-local function open_directory_browser(ref, dir_path, mode)
+open_directory_browser = function(ref, dir_path, mode)
   local source_win = vim.api.nvim_get_current_win()
 
   local buf = vim.api.nvim_create_buf(false, true)
@@ -228,22 +278,7 @@ local function open_directory_browser(ref, dir_path, mode)
     end
 
     close()
-
-    local target_win = find_target_window()
-    local open_cmd = mode == "split" and "split" or mode == "vsplit" and "vsplit" or "edit"
-    local escaped = vim.fn.fnameescape(entry.path)
-
-    if target_win and mode == "edit" then
-      vim.api.nvim_win_call(target_win, function()
-        vim.cmd(open_cmd .. " " .. escaped)
-      end)
-      vim.api.nvim_set_current_win(target_win)
-    else
-      if mode ~= "edit" and target_win then
-        vim.api.nvim_set_current_win(target_win)
-      end
-      vim.cmd(open_cmd .. " " .. escaped)
-    end
+    open_ref(entry, bufnr, mode)
   end
 
   local kopts = { buffer = buf, noremap = true, silent = true }
@@ -272,54 +307,91 @@ end
 local function process_ref(ref, bufnr, ns, mode)
   vim.api.nvim_buf_clear_namespace(bufnr, ns, 0, -1)
   vim.api.nvim_echo({ { "" } }, false, {})
+  open_ref(ref, bufnr, mode)
+end
 
-  -- Handle URL
-  if ref.type == "url" then
-    open_url(ref.path)
-    return
+---Collect text segments from the current visual selection.
+---@param bufnr number
+---@param visual_type string
+---@return table[] segments
+local function collect_visual_segments(bufnr, visual_type)
+  local start_pos = vim.fn.getpos("'<")
+  local end_pos = vim.fn.getpos("'>")
+  local srow, scol = start_pos[2], start_pos[3]
+  local erow, ecol = end_pos[2], end_pos[3]
+
+  if srow > erow or (srow == erow and scol > ecol) then
+    srow, erow = erow, srow
+    scol, ecol = ecol, scol
   end
 
-  -- Handle anchor (same document heading link)
-  if ref.type == "anchor" then
-    jump_to_anchor(ref.path, bufnr)
-    return
+  local function get_line(row)
+    return vim.api.nvim_buf_get_lines(bufnr, row - 1, row, false)[1] or ""
   end
 
-  -- Handle file or directory
-  local target_win = find_target_window()
-  local path, path_type = finder.resolve_path(ref.path, bufnr)
+  local segments = {}
 
-  if path_type == "directory" then
-    open_directory_browser(ref, path, mode)
-    return
-  end
-
-  if path_type == "notfound" then
-    vim.notify("File not found: " .. path, vim.log.levels.INFO)
-    return
-  end
-
-  local open_cmd = mode == "split" and "split" or mode == "vsplit" and "vsplit" or "edit"
-
-  if target_win and mode == "edit" then
-    vim.api.nvim_win_call(target_win, function()
-      vim.cmd(open_cmd .. " " .. vim.fn.fnameescape(path))
-    end)
-    vim.api.nvim_set_current_win(target_win)
-  else
-    if mode ~= "edit" then
-      -- For split/vsplit, go to target window first if available
-      if target_win then
-        vim.api.nvim_set_current_win(target_win)
+  if visual_type == "\22" then
+    for row = srow, erow do
+      local line = get_line(row)
+      local text = line:sub(scol, ecol)
+      if text ~= "" then
+        table.insert(segments, { text = text, buf_line = row, base_col = scol })
       end
     end
-    vim.cmd(open_cmd .. " " .. vim.fn.fnameescape(path))
+    return segments
   end
 
-  -- Set cursor to line and column (column is 0-indexed in nvim_win_set_cursor)
-  local target_col = ref.column and (ref.column - 1) or 0
-  vim.api.nvim_win_set_cursor(0, { ref.line, target_col })
-  vim.cmd("normal! zz")
+  if visual_type == "V" then
+    for row = srow, erow do
+      local line = get_line(row)
+      if line ~= "" then
+        table.insert(segments, { text = line, buf_line = row, base_col = 1 })
+      end
+    end
+    return segments
+  end
+
+  for row = srow, erow do
+    local line = get_line(row)
+    local text
+    local base_col
+
+    if srow == erow then
+      text = line:sub(scol, ecol)
+      base_col = scol
+    elseif row == srow then
+      text = line:sub(scol)
+      base_col = scol
+    elseif row == erow then
+      text = line:sub(1, ecol)
+      base_col = 1
+    else
+      text = line
+      base_col = 1
+    end
+
+    if text ~= "" then
+      table.insert(segments, { text = text, buf_line = row, base_col = base_col })
+    end
+  end
+
+  return segments
+end
+
+---Browse the current visual selection.
+---@param visual_type string|nil
+function M.browse_selection(visual_type)
+  local bufnr = vim.api.nvim_get_current_buf()
+  local segments = collect_visual_segments(bufnr, visual_type or vim.fn.visualmode())
+  local refs = finder.find_refs_in_segments(segments)
+
+  if #refs == 0 then
+    vim.notify("No path, URL, or folder found in selection", vim.log.levels.INFO)
+    return
+  end
+
+  open_ref(refs[1], bufnr, "edit")
 end
 
 ---Display hints and handle user input

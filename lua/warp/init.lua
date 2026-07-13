@@ -18,6 +18,12 @@ function M.setup(opts)
       desc = "Warp to file",
       silent = true,
     })
+    vim.keymap.set("x", M.config.default_keymap, function()
+      require("warp.ui").browse_selection(vim.fn.visualmode())
+    end, {
+      desc = "Warp selection",
+      silent = true,
+    })
   end
 end
 

@@ -206,6 +206,139 @@ local function classify_path(p)
   return "notfound"
 end
 
+---Scan a single selected line for refs without visibility filtering.
+---@param line string
+---@param buf_line number
+---@param base_col number
+---@param refs WarpRef[]
+---@param seen table<string, boolean>
+local function scan_line_for_refs(line, buf_line, base_col, refs, seen)
+  local matched_ranges = {}
+
+  local function is_range_matched(s, e)
+    for _, range in ipairs(matched_ranges) do
+      if not (e < range.s or s > range.e) then
+        return true
+      end
+    end
+    return false
+  end
+
+  local function try_add_ref(path, display, s, e, ref_type, line_num, column)
+    if is_range_matched(s, e) then
+      return
+    end
+
+    local col = base_col + s - 1
+    local key = buf_line .. ":" .. col .. ":" .. display
+    if not seen[key] then
+      seen[key] = true
+      table.insert(matched_ranges, { s = s, e = e })
+      table.insert(refs, {
+        path = path,
+        line = line_num or 1,
+        column = column,
+        display = display,
+        buf_line = buf_line,
+        col = col,
+        type = ref_type,
+      })
+    end
+  end
+
+  local ft = vim.bo[0].filetype
+  local search_start = 1
+
+  if ft == "markdown" then
+    local md_link_pattern = "%[([^%]]+)%]%(([^%)]+)%)"
+    while true do
+      local s, e, text, target = line:find(md_link_pattern, search_start)
+      if not s then
+        break
+      end
+      local display = "[" .. text .. "](" .. target .. ")"
+      if target:match("^#") then
+        try_add_ref(target, display, s, e, "anchor", 0)
+      elseif target:match("^https?://") then
+        try_add_ref(target, display, s, e, "url", 1)
+      else
+        try_add_ref(target, display, s, e, "file", 1)
+      end
+      search_start = e + 1
+    end
+  end
+
+  local url_pattern = "(https?://[%w%-_.~:/?#%[%]@!$&'()*+,;=%%]+)"
+  search_start = 1
+  while true do
+    local s, e, url = line:find(url_pattern, search_start)
+    if not s then
+      break
+    end
+    local clean_url = url:gsub("[,.)>]+$", "")
+    local clean_e = s + #clean_url - 1
+    try_add_ref(clean_url, clean_url, s, clean_e, "url", 1)
+    search_start = e + 1
+  end
+
+  local pattern_with_line_col = "([~%.%w/_%-][~%w%./_%-]*):(%d+):(%d+)"
+  search_start = 1
+  while true do
+    local s, e, path, lnum, cnum = line:find(pattern_with_line_col, search_start)
+    if not s then
+      break
+    end
+    if not path:match("^%d+$") and #path >= 2 then
+      try_add_ref(path, path .. ":" .. lnum .. ":" .. cnum, s, e, "file", tonumber(lnum), tonumber(cnum))
+    end
+    search_start = e + 1
+  end
+
+  local pattern_with_line = "([~%.%w/_%-][~%w%./_%-]*):(%d+)"
+  search_start = 1
+  while true do
+    local s, e, path, lnum = line:find(pattern_with_line, search_start)
+    if not s then
+      break
+    end
+    if not path:match("^%d+$") and #path >= 2 then
+      try_add_ref(path, path .. ":" .. lnum, s, e, "file", tonumber(lnum))
+    end
+    search_start = e + 1
+  end
+
+  local pattern_file_only = "([~%.%w/_%-][~%w%./_%-]*)"
+  search_start = 1
+  while true do
+    local s, e, path = line:find(pattern_file_only, search_start)
+    if not s then
+      break
+    end
+    local next_chars = line:sub(e + 1, e + 2)
+    local looks_like_path = path:match("/") or path:match("%.")
+    if not next_chars:match("^:%d") and #path >= 2 and looks_like_path then
+      try_add_ref(path, path, s, e, "file", 1)
+    end
+    search_start = e + 1
+  end
+end
+
+---Find refs from selected text segments.
+---@param segments table[] List of {text, buf_line, base_col}
+---@return WarpRef[]
+function M.find_refs_in_segments(segments)
+  local refs = {}
+  local seen = {}
+
+  for _, segment in ipairs(segments) do
+    if segment.text and segment.text ~= "" then
+      scan_line_for_refs(segment.text, segment.buf_line, segment.base_col or 1, refs, seen)
+    end
+  end
+
+  return refs
+end
+
 ---@param path string
 ---@param bufnr number|nil optional buffer number for buffer-relative fallback
 ---@return string resolved_path, PathType path_type

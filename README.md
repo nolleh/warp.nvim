@@ -59,6 +59,7 @@ So you can jump to external files and links without leaving the editor or copyin
 - **URL support** - Opens URLs in your default browser (hints shown in green)
 - **Markdown link support** - Follows `[text](target)` links including anchor links in `.md` files (hints shown in orange)
 - **Directory browsing** - When a path points to a folder, opens a floating directory browser you can navigate with standard keys
+- **Visual selection browsing** - In visual mode, press the warp key on a selected block/region to open the first path or folder found
 - **Wrapped path support** - Handles file paths broken across lines by terminal width
 - **Smart window targeting** - Opens files in your editor window, not the terminal
 - **Split/Vsplit support** - Prefix with `S` or `V` to open in split windows
@@ -105,6 +106,8 @@ use {
 1. Press `<leader>w` (default) or run `:Warp`
 2. Hint labels appear on detected file paths
 3. Type the hint to jump
+
+In visual mode, select a block or range of text and press the same warp key to browse the first path-like target inside the selection. If it resolves to a directory, the floating folder browser opens there.
 
 That's it. No configuration needed.
 
