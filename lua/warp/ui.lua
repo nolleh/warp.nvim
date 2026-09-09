@@ -224,7 +224,7 @@ open_directory_browser = function(ref, dir_path, mode)
 
   local width, height = calc_dimensions(entries)
   local topline = vim.fn.line("w0")
-  local row = ref.buf_line - topline + 1
+  local row = ref.buf_line - topline + 2
 
   local float_win = vim.api.nvim_open_win(buf, true, {
     relative = "win",
