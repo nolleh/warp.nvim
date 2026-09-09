@@ -43,6 +43,7 @@ local function find_target_window()
       (not cfg.relative or cfg.relative == "")
       and bt ~= "terminal"
       and bt ~= "prompt"
+      and bt ~= "nofile"
       and ft ~= "neo-tree"
       and ft ~= "NvimTree"
       and ft ~= "oil"
