@@ -69,6 +69,10 @@ https://www.google.com/search?q=neovim
 [Commands module](lua/warp/commands.lua)
 [Relative path](./lua/warp/init.lua)
 
+## Visual selection (absolute Markdown link with line number)
+
+The default configuration is in [config.lua](/Users/nolleh/Documents/workspace_github/omniac.nvim/lua/omniac/config.lua:3).
+
 ## Markdown links (anchor links - orange hints, jump within this file)
 
 [Go to Common config files](#common-config-files)

@@ -316,8 +316,10 @@ end
 ---@param visual_type string
 ---@return table[] segments
 local function collect_visual_segments(bufnr, visual_type)
-  local start_pos = vim.fn.getpos("'<")
-  local end_pos = vim.fn.getpos("'>")
+  local current_mode = vim.api.nvim_get_mode().mode
+  local selection_is_active = current_mode == "v" or current_mode == "V" or current_mode == "\22"
+  local start_pos = vim.fn.getpos(selection_is_active and "v" or "'<")
+  local end_pos = vim.fn.getpos(selection_is_active and "." or "'>")
   local srow, scol = start_pos[2], start_pos[3]
   local erow, ecol = end_pos[2], end_pos[3]
 

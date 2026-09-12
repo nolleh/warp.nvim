@@ -1,6 +1,22 @@
 -- Path detection logic for warp.nvim
 local M = {}
 
+---@param target string
+---@return string path, number line, number|nil column
+local function parse_file_target(target)
+  local path, line, column = target:match("^(.-):(%d+):(%d+)$")
+  if path then
+    return path, tonumber(line), tonumber(column)
+  end
+
+  path, line = target:match("^(.-):(%d+)$")
+  if path then
+    return path, tonumber(line), nil
+  end
+
+  return target, 1, nil
+end
+
 ---@alias RefType "file" | "url" | "anchor"
 
 ---@class WarpRef
@@ -122,7 +138,8 @@ function M.find_refs(bufnr, win_id)
         try_add_ref(target, 0, display, s, e, "url")
       else
         -- File link
-        try_add_ref(target, 1, display, s, e, "file")
+        local path, line, column = parse_file_target(target)
+        try_add_ref(path, line, display, s, e, "file", column)
       end
       search_start = e + 1
     end
@@ -262,7 +279,8 @@ local function scan_line_for_refs(line, buf_line, base_col, refs, seen)
       elseif target:match("^https?://") then
         try_add_ref(target, display, s, e, "url", 1)
       else
-        try_add_ref(target, display, s, e, "file", 1)
+        local path, line_num, column = parse_file_target(target)
+        try_add_ref(path, display, s, e, "file", line_num, column)
       end
       search_start = e + 1
     end

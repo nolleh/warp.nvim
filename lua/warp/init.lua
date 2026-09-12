@@ -19,7 +19,7 @@ function M.setup(opts)
       silent = true,
     })
     vim.keymap.set("x", M.config.default_keymap, function()
-      require("warp.ui").browse_selection(vim.fn.visualmode())
+      require("warp.ui").browse_selection(vim.api.nvim_get_mode().mode)
     end, {
       desc = "Warp selection",
       silent = true,
