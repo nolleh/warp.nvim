@@ -223,14 +223,14 @@ open_directory_browser = function(ref, dir_path, mode)
   end
 
   local width, height = calc_dimensions(entries)
-  local topline = vim.fn.line("w0")
-  local row = ref.buf_line - topline + 2
+  local anchor_pos = { ref.buf_line - 1, ref.col }
 
   local float_win = vim.api.nvim_open_win(buf, true, {
     relative = "win",
     win = source_win,
-    row = row,
-    col = ref.col,
+    bufpos = anchor_pos,
+    row = 1,
+    col = 0,
     width = width,
     height = height,
     style = "minimal",
@@ -254,8 +254,9 @@ open_directory_browser = function(ref, dir_path, mode)
     vim.api.nvim_win_set_config(float_win, {
       relative = "win",
       win = source_win,
-      row = row,
-      col = ref.col,
+      bufpos = anchor_pos,
+      row = 1,
+      col = 0,
       width = new_w,
       height = new_h,
       style = "minimal",
