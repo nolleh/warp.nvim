@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v0.6.2](https://github.com/nolleh/warp.nvim/releases/tag/v0.6.2) - 2026-09-12
+
+### Fixed
+
+- Visual selection browsing now reads the active selection instead of stale selection marks.
+- Markdown file links preserve `:line` and `:line:column` locations when opening their target files.
+- The directory browser stays anchored to the matched buffer path across scrolling, line wrapping, and folds.
+
+## [v0.6.1](https://github.com/nolleh/warp.nvim/releases/tag/v0.6.1) - 2026-09-10
+
+### Fixed
+
+- File opening skips `nofile` plugin windows.
+- The selected directory path remains visible above the floating directory browser.
+
 ## [v0.6.0](https://github.com/nolleh/warp.nvim/releases/tag/v0.6.0) - 2026-07-13
 
 ### Added
