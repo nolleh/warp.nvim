@@ -28,6 +28,45 @@ end
 ---@field col number
 ---@field type RefType
 
+---Read visible line ranges without fetching closed fold interiors.
+---@param bufnr number
+---@param win_id number
+---@param first number
+---@param last number
+---@return string[] lines, number[] line_numbers, table<number, boolean> folded_lines
+local function get_visible_lines(bufnr, win_id, first, last)
+  local lines, line_numbers, folded_lines = {}, {}, {}
+
+  local function read_range(start_line, end_line)
+    for i, line in ipairs(vim.fn.getbufline(bufnr, start_line, end_line)) do
+      lines[#lines + 1] = line
+      line_numbers[#line_numbers + 1] = start_line + i - 1
+    end
+  end
+
+  -- Fold state belongs to the window, even when another window shows the same buffer.
+  vim.api.nvim_win_call(win_id, function()
+    local range_start = first
+    local lnum = first
+    while lnum <= last do
+      local fold_end = vim.fn.foldclosedend(lnum)
+      if fold_end ~= -1 then
+        read_range(range_start, lnum)
+        folded_lines[lnum] = true
+        lnum = fold_end + 1
+        range_start = lnum
+      else
+        lnum = lnum + 1
+      end
+    end
+    if range_start <= last then
+      read_range(range_start, last)
+    end
+  end)
+
+  return lines, line_numbers, folded_lines
+end
+
 ---Find file paths in visible buffer area
 ---@param bufnr number
 ---@param win_id number
@@ -35,7 +74,7 @@ end
 function M.find_refs(bufnr, win_id)
   local first = vim.fn.line("w0", win_id)
   local last = vim.fn.line("w$", win_id)
-  local lines = vim.fn.getbufline(bufnr, first, last)
+  local lines, line_numbers, folded_lines = get_visible_lines(bufnr, win_id, first, last)
 
   local refs = {}
   local seen = {}
@@ -55,12 +94,19 @@ function M.find_refs(bufnr, win_id)
   -- Combine lines for detecting wrapped paths (lines broken by terminal width)
   local combined = ""
   local line_offsets = {} -- line_offsets[i] = start position of line i in combined
+  local fold_boundaries = {}
   local path_char = "[~%.%w/_%-]"
   local win_width = vim.api.nvim_win_get_width(win_id)
 
   for i, line in ipairs(lines) do
     local prev_len = i > 1 and #lines[i - 1] or 0
-    local is_forced_wrap = prev_len >= win_width - 1
+    local is_fold_boundary = i > 1
+      and (
+        line_numbers[i] ~= line_numbers[i - 1] + 1
+        or folded_lines[line_numbers[i - 1]]
+        or folded_lines[line_numbers[i]]
+      )
+    local is_forced_wrap = not is_fold_boundary and prev_len >= win_width - 1
 
     if is_forced_wrap and lines[i - 1]:match(path_char .. "$") and line:match("^" .. path_char) then
       line_offsets[i] = #combined
@@ -68,6 +114,9 @@ function M.find_refs(bufnr, win_id)
     else
       combined = combined .. " "
       line_offsets[i] = #combined
+      if is_fold_boundary then
+        fold_boundaries[#fold_boundaries + 1] = #combined
+      end
       combined = combined .. line
     end
   end
@@ -76,7 +125,7 @@ function M.find_refs(bufnr, win_id)
   local function pos_to_line_col(pos)
     for i = #line_offsets, 1, -1 do
       if line_offsets[i] < pos then
-        return first + i - 1, pos - line_offsets[i] - 1
+        return line_numbers[i], pos - line_offsets[i] - 1
       end
     end
     return first, pos - 1
@@ -91,6 +140,13 @@ function M.find_refs(bufnr, win_id)
   ---@param ref_type RefType
   ---@param column number|nil optional column number
   local function try_add_ref(path, lnum, display, s, e, ref_type, column)
+    -- A multiline match must not bridge text hidden by a closed fold.
+    for _, boundary in ipairs(fold_boundaries) do
+      if s <= boundary and e > boundary then
+        return
+      end
+    end
+
     -- Skip if this range overlaps with an already matched range
     if is_range_matched(s, e) then
       return

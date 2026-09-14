@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v0.6.3](https://github.com/nolleh/warp.nvim/releases/tag/v0.6.3) - 2026-09-14
+
+### Fixed
+
+- Reference scanning now skips hidden interiors of closed folds while preserving visible fold headers and buffer coordinates.
+
 ## [v0.6.2](https://github.com/nolleh/warp.nvim/releases/tag/v0.6.2) - 2026-09-12
 
 ### Fixed
