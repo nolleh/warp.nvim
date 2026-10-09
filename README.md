@@ -111,6 +111,16 @@ In visual mode, select a block or range of text and press the same warp key to b
 
 That's it. No configuration needed.
 
+### Relative Paths
+
+In a file buffer, relative paths are resolved from the current file's directory first,
+then from the working directory if the target is not found. This applies to all file
+types, including Markdown, and to both files and folders. If the target exists in
+both locations, the one relative to the current file is used.
+
+Terminal, unnamed, and other special buffers resolve relative paths from the working
+directory. Absolute paths and `~/` paths are used directly.
+
 ### Directory Browsing
 
 When a detected path points to a directory, warp opens a floating browser at the hint position.
