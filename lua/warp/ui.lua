@@ -390,6 +390,25 @@ function M.browse_selection(visual_type)
   local segments = collect_visual_segments(bufnr, visual_type or vim.fn.visualmode())
   local refs = finder.find_refs_in_segments(segments)
 
+  if #segments > 1 then
+    local parts = {}
+    for _, segment in ipairs(segments) do
+      parts[#parts + 1] = vim.trim(segment.text)
+    end
+    local joined = table.concat(parts)
+    local leading_whitespace = segments[1].text:match("^%s*")
+    local joined_refs = finder.find_refs_in_segments({
+      { text = joined, buf_line = segments[1].buf_line, base_col = segments[1].base_col + #leading_whitespace },
+    })
+    local joined_ref = joined_refs[1]
+    if joined_ref and joined_ref.type == "file" and joined_ref.display == joined then
+      local _, path_type = finder.resolve_path(joined_ref.path, bufnr)
+      if path_type ~= "notfound" then
+        refs = { joined_ref }
+      end
+    end
+  end
+
   if #refs == 0 then
     vim.notify("No path, URL, or folder found in selection", vim.log.levels.INFO)
     return

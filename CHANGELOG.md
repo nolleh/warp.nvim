@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v0.7.0](https://github.com/nolleh/warp.nvim/releases/tag/v0.7.0) - 2026-10-10
+
+### Added
+
+- Visual selection browsing joins selected lines into one path when the complete selection resolves to an existing file or directory, ignoring whitespace at line boundaries. Otherwise, it keeps the existing per-line search.
+
 ## [v0.6.4](https://github.com/nolleh/warp.nvim/releases/tag/v0.6.4) - 2026-10-10
 
 ### Fixed
