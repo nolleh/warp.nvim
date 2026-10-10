@@ -111,6 +111,13 @@ In visual mode, select a block or range of text and press the same warp key to b
 
 That's it. No configuration needed.
 
+### Relative Paths
+
+Relative paths are resolved from the current file's directory first, with the working
+directory as a fallback. If a path exists in both places, the file-relative match is
+used. Unnamed and special buffers use the working directory. Absolute paths and `~/`
+paths are used directly.
+
 ### Directory Browsing
 
 When a detected path points to a directory, warp opens a floating browser at the hint position.

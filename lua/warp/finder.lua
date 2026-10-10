@@ -264,7 +264,7 @@ function M.find_refs(bufnr, win_id)
 end
 
 ---Resolve path to absolute path
----Falls back to buffer-relative resolution if cwd-relative path doesn't exist
+---Prefer file-buffer-relative resolution, with cwd as a fallback
 ---@alias PathType "file" | "directory" | "notfound"
 
 ---Classify a path as file, directory, or notfound
@@ -414,20 +414,15 @@ function M.find_refs_in_segments(segments)
 end
 
 ---@param path string
----@param bufnr number|nil optional buffer number for buffer-relative fallback
+---@param bufnr number|nil optional file buffer to resolve relative paths from first
 ---@return string resolved_path, PathType path_type
 function M.resolve_path(path, bufnr)
   if path:match("^~") then
     local expanded = path:gsub("^~", vim.fn.expand("~"))
     return expanded, classify_path(expanded)
   elseif not path:match("^/") then
-    local cwd_path = vim.fn.getcwd() .. "/" .. path
-    local cwd_type = classify_path(cwd_path)
-    if cwd_type ~= "notfound" then
-      return cwd_path, cwd_type
-    end
-
-    if bufnr then
+    -- Named special buffers (for example term://...) are not document paths.
+    if bufnr and vim.bo[bufnr].buftype == "" then
       local buf_name = vim.api.nvim_buf_get_name(bufnr)
       if buf_name ~= "" then
         local buf_dir = vim.fn.fnamemodify(buf_name, ":p:h")
@@ -439,7 +434,8 @@ function M.resolve_path(path, bufnr)
       end
     end
 
-    return cwd_path, "notfound"
+    local cwd_path = vim.fn.getcwd() .. "/" .. path
+    return cwd_path, classify_path(cwd_path)
   end
   return path, classify_path(path)
 end
