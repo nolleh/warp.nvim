@@ -113,13 +113,10 @@ That's it. No configuration needed.
 
 ### Relative Paths
 
-In a file buffer, relative paths are resolved from the current file's directory first,
-then from the working directory if the target is not found. This applies to all file
-types, including Markdown, and to both files and folders. If the target exists in
-both locations, the one relative to the current file is used.
-
-Terminal, unnamed, and other special buffers resolve relative paths from the working
-directory. Absolute paths and `~/` paths are used directly.
+Relative paths are resolved from the current file's directory first, with the working
+directory as a fallback. If a path exists in both places, the file-relative match is
+used. Unnamed and special buffers use the working directory. Absolute paths and `~/`
+paths are used directly.
 
 ### Directory Browsing
 
