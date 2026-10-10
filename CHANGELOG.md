@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v0.6.4](https://github.com/nolleh/warp.nvim/releases/tag/v0.6.4) - 2026-10-10
+
+### Fixed
+
+- Relative paths now prefer the directory of the current file, falling back to the working directory when the target is not found. This applies to files and directories in named file buffers.
+
 ## [v0.6.3](https://github.com/nolleh/warp.nvim/releases/tag/v0.6.3) - 2026-09-14
 
 ### Fixed
