@@ -60,6 +60,13 @@ https://www.google.com/search?q=neovim
 
 Error at lua/warp/finder.lua:42
 
+## Visual selection across lines (select both path lines, then press the warp key)
+  lua/warp/
+  ui.lua
+
+test/
+  fixtures/
+
 ## Folder paths (directory browsing)
 lua/warp/
 test/fixtures/

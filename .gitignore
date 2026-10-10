@@ -5,3 +5,4 @@ palette.png
 ## editor / env
 *.swp
 *.DS_Store
+nvim.log

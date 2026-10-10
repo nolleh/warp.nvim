@@ -88,6 +88,18 @@ The default configuration is in [config.lua](/Users/nolleh/Documents/workspace_g
 
 [Word-wrapped path](/Users/nolleh/Documents/workspace_github/../../../../Users/nolleh/Documents/workspace_github/warp.nvim/lua/warp/init.lua)
 
+## Visual selection across lines (select both path lines, then press the warp key)
+
+```text
+  lua/warp/
+  ui.lua
+```
+
+```text
+test/
+  fixtures/
+```
+
 ## Folder paths (directory browsing)
 
 lua/warp/

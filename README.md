@@ -108,6 +108,7 @@ use {
 3. Type the hint to jump
 
 In visual mode, select a block or range of text and press the same warp key to browse the first path-like target inside the selection. If it resolves to a directory, the floating folder browser opens there.
+When a selected path spans multiple lines, warp joins the lines and opens the complete path if it exists.
 
 That's it. No configuration needed.
 
