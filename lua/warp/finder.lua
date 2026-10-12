@@ -195,6 +195,12 @@ function M.find_refs(bufnr, win_id)
       else
         -- File link
         local path, line, column = parse_file_target(target)
+        if path:find("%s") and select(2, M.resolve_path(path, bufnr)) == "notfound" then
+          local without_padding = path:gsub("%s+", "")
+          if select(2, M.resolve_path(without_padding, bufnr)) ~= "notfound" then
+            path = without_padding
+          end
+        end
         try_add_ref(path, line, display, s, e, "file", column)
       end
       search_start = e + 1

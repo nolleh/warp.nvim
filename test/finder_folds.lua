@@ -168,6 +168,25 @@ test("Markdown targets after folds keep their target and buffer coordinates", fu
   assert(refs[2].line == 42 and refs[2].column == 3, "Lost the target line or column")
 end)
 
+test("Markdown paths wrapped with padded lines resolve without padding", function()
+  local path = vim.fn.getcwd() .. "/README.md"
+  local prefix = path:sub(1, -6)
+  reset({ "  [Read](" .. prefix .. "     ", "  " .. path:sub(-5) .. ")  " })
+  vim.bo.filetype = "markdown"
+  assert_refs({ path .. "@1:2" })
+end)
+
+test("Markdown paths preserve spaces that belong to an existing filename", function()
+  local dir = vim.fn.tempname()
+  vim.fn.mkdir(dir, "p")
+  local path = dir .. "/two words.md"
+  vim.fn.writefile({}, path)
+  reset({ "[Read](" .. path .. ")" })
+  vim.bo.filetype = "markdown"
+  assert_refs({ path .. "@1:0" })
+  vim.fn.delete(dir, "rf")
+end)
+
 test("Markdown links cannot be assembled across a closed fold", function()
   reset({ "[broken", "fold header", "hidden text", "](after.lua)" })
   vim.bo.filetype = "markdown"

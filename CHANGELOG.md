@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Fixed
 
 - Normal mode hints recognize existing file and directory paths split across up to three adjacent lines, even when the line break occurs before the Neovim window edge. Separately valid paths remain separate, and closed folds stop joining.
+- Markdown file links in padded chat lines resolve the path without display padding while preserving spaces in real filenames.
 
 ## [v0.7.0](https://github.com/nolleh/warp.nvim/releases/tag/v0.7.0) - 2026-10-10
 
