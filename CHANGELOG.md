@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [v0.7.1](https://github.com/nolleh/warp.nvim/releases/tag/v0.7.1) - 2026-10-12
+
+### Fixed
+
+- Normal mode hints recognize existing file and directory paths split across up to three adjacent lines, even when the line break occurs before the Neovim window edge. Separately valid paths remain separate, and closed folds stop joining.
+
 ## [v0.7.0](https://github.com/nolleh/warp.nvim/releases/tag/v0.7.0) - 2026-10-10
 
 ### Added

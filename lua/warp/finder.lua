@@ -216,6 +216,40 @@ function M.find_refs(bufnr, win_id)
     search_start = e + 1
   end
 
+  -- Some terminal buffers insert newlines before reaching the Neovim window edge.
+  -- Only join adjacent path fragments when the resulting path exists.
+  for i, line in ipairs(lines) do
+    local start_col, first_part = line:match("()([~%.%w/_%-]+)%s*$")
+    if first_part and first_part:find("/", 1, true) then
+      local joined = first_part
+      local separate_paths_exist = select(2, M.resolve_path(first_part, bufnr)) ~= "notfound"
+      for j = i + 1, math.min(i + 2, #lines) do
+        if
+          line_numbers[j] ~= line_numbers[j - 1] + 1
+          or folded_lines[line_numbers[j - 1]]
+          or folded_lines[line_numbers[j]]
+        then
+          break
+        end
+
+        local indent, part = lines[j]:match("^(%s*)([~%.%w/_%-]+)")
+        if not part or #joined + #part > 1024 then
+          break
+        end
+
+        joined = joined .. part
+        separate_paths_exist = separate_paths_exist and select(2, M.resolve_path(part, bufnr)) ~= "notfound"
+        local _, path_type = M.resolve_path(joined, bufnr)
+        if path_type ~= "notfound" and not separate_paths_exist then
+          local start_pos = line_offsets[i] + start_col
+          local end_pos = line_offsets[j] + #indent + #part
+          try_add_ref(joined, 1, joined, start_pos, end_pos, "file")
+          break
+        end
+      end
+    end
+  end
+
   -- Pattern: file:line:col (must be before file:line to match first)
   local pattern_with_line_col = "([~%.%w/_%-][~%w%./_%-]*):(%d+):(%d+)"
   search_start = 1

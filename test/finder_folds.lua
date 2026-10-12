@@ -115,6 +115,40 @@ test("ordinary terminal-width path continuations still join", function()
   assert_refs({ prefix .. "file.lua@1:0" })
 end)
 
+test("existing paths split before the window edge join across up to three lines", function()
+  local path = vim.fn.getcwd() .. "/README.md"
+  local prefix = path:sub(1, -6)
+  reset({ "  (" .. prefix, "  " .. path:sub(-5) .. ")" })
+  assert_refs({ path .. "@1:3" })
+
+  reset({ "  (" .. prefix, "  " .. path:sub(-5, -5), "  " .. path:sub(-4) .. ")" })
+  assert_refs({ path .. "@1:3" })
+end)
+
+test("separate path lines stay separate", function()
+  reset({ "README.md", "test.sh" })
+  assert_refs({ "README.md@1:0", "test.sh@2:0" })
+end)
+
+test("valid separate paths take priority even when their concatenation exists", function()
+  local dir = vim.fn.tempname()
+  vim.fn.mkdir(dir, "p")
+  for _, name in ipairs({ "a", "b.md", "ab.md" }) do
+    vim.fn.writefile({}, dir .. "/" .. name)
+  end
+  reset({ dir .. "/a", "b.md" })
+  vim.api.nvim_buf_set_name(0, dir .. "/source.md")
+  assert_refs({ dir .. "/a@1:0", "b.md@2:0" })
+  vim.fn.delete(dir, "rf")
+end)
+
+test("short wrapped paths do not cross closed folds", function()
+  local path = vim.fn.getcwd() .. "/README.md"
+  reset({ path:sub(1, -6), "fold header", "hidden text", path:sub(-5) })
+  vim.cmd("2,3fold")
+  assert_refs({ path:sub(1, -6) .. "@1:0", path:sub(-5) .. "@4:0" })
+end)
+
 test("terminal-width paths do not join into or across a closed fold", function()
   reset({ "" })
   local width = vim.api.nvim_win_get_width(0)
