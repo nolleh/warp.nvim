@@ -44,5 +44,5 @@ jobs:
         run: |
           for test_file in test/*.lua; do
             echo "Running ${test_file}"
-            nvim --headless -u NONE -i NONE -n -l "${test_file}"
+            nvim --headless -u NONE -i NONE -n -c "luafile ${test_file}" -c "cquit 1"
           done
