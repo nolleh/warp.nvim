@@ -1,0 +1,48 @@
+name: PR checks
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  format:
+    name: Format
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Lua formatting
+        uses: JohnnyMorganz/stylua-action@v4
+        with:
+          version: v0.16.1
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --check .
+
+  test:
+    name: Test (Neovim ${{ matrix.neovim }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        neovim: [v0.10.4, stable]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Neovim
+        uses: rhysd/action-setup-vim@v1
+        with:
+          neovim: true
+          version: ${{ matrix.neovim }}
+      - name: Run automated tests
+        shell: bash
+        run: |
+          for test_file in test/*.lua; do
+            echo "Running ${test_file}"
+            nvim --headless -u NONE -i NONE -n -c "luafile ${test_file}" -c "cquit 1"
+          done
