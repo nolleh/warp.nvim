@@ -2,19 +2,21 @@
 local M = {}
 
 ---@param target string
----@return string path, number line, number|nil column
+---@return string path, number line, number|nil column, string|nil anchor
 local function parse_file_target(target)
+  local file, anchor = target:match("^(.-)(#.*)$")
+  target = file or target
   local path, line, column = target:match("^(.-):(%d+):(%d+)$")
   if path then
-    return path, tonumber(line), tonumber(column)
+    return path, tonumber(line), tonumber(column), anchor
   end
 
   path, line = target:match("^(.-):(%d+)$")
   if path then
-    return path, tonumber(line), nil
+    return path, tonumber(line), nil, anchor
   end
 
-  return target, 1, nil
+  return target, 1, nil, anchor
 end
 
 ---@alias RefType "file" | "url" | "anchor"
@@ -23,6 +25,7 @@ end
 ---@field path string
 ---@field line number
 ---@field column number|nil Column number (1-indexed, nil if not specified)
+---@field anchor string|nil Heading fragment for a Markdown file link
 ---@field display string
 ---@field buf_line number
 ---@field col number
@@ -139,7 +142,7 @@ function M.find_refs(bufnr, win_id)
   ---@param e number end position in combined string
   ---@param ref_type RefType
   ---@param column number|nil optional column number
-  local function try_add_ref(path, lnum, display, s, e, ref_type, column)
+  local function try_add_ref(path, lnum, display, s, e, ref_type, column, anchor)
     -- A multiline match must not bridge text hidden by a closed fold.
     for _, boundary in ipairs(fold_boundaries) do
       if s <= boundary and e > boundary then
@@ -165,6 +168,7 @@ function M.find_refs(bufnr, win_id)
           path = path,
           line = lnum,
           column = column,
+          anchor = anchor,
           display = display,
           buf_line = buf_line,
           col = col,
@@ -194,14 +198,14 @@ function M.find_refs(bufnr, win_id)
         try_add_ref(target, 0, display, s, e, "url")
       else
         -- File link
-        local path, line, column = parse_file_target(target)
+        local path, line, column, anchor = parse_file_target(target)
         if path:find("%s") and select(2, M.resolve_path(path, bufnr)) == "notfound" then
           local without_padding = path:gsub("%s+", "")
           if select(2, M.resolve_path(without_padding, bufnr)) ~= "notfound" then
             path = without_padding
           end
         end
-        try_add_ref(path, line, display, s, e, "file", column)
+        try_add_ref(path, line, display, s, e, "file", column, anchor)
       end
       search_start = e + 1
     end
@@ -337,7 +341,7 @@ local function scan_line_for_refs(line, buf_line, base_col, refs, seen)
     return false
   end
 
-  local function try_add_ref(path, display, s, e, ref_type, line_num, column)
+  local function try_add_ref(path, display, s, e, ref_type, line_num, column, anchor)
     if is_range_matched(s, e) then
       return
     end
@@ -351,6 +355,7 @@ local function scan_line_for_refs(line, buf_line, base_col, refs, seen)
         path = path,
         line = line_num or 1,
         column = column,
+        anchor = anchor,
         display = display,
         buf_line = buf_line,
         col = col,
@@ -375,8 +380,8 @@ local function scan_line_for_refs(line, buf_line, base_col, refs, seen)
       elseif target:match("^https?://") then
         try_add_ref(target, display, s, e, "url", 1)
       else
-        local path, line_num, column = parse_file_target(target)
-        try_add_ref(path, display, s, e, "file", line_num, column)
+        local path, line_num, column, anchor = parse_file_target(target)
+        try_add_ref(path, display, s, e, "file", line_num, column, anchor)
       end
       search_start = e + 1
     end

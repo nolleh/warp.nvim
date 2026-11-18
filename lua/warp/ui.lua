@@ -108,6 +108,11 @@ local function open_ref(ref, bufnr, mode)
     vim.cmd(open_cmd .. " " .. vim.fn.fnameescape(path))
   end
 
+  if ref.anchor then
+    jump_to_anchor(ref.anchor, vim.api.nvim_get_current_buf())
+    return
+  end
+
   local target_line = ref.line or 1
   local target_col = ref.column and (ref.column - 1) or 0
   vim.api.nvim_win_set_cursor(0, { target_line, target_col })
